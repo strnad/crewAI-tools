@@ -27,7 +27,7 @@ class SerperDevTool(BaseTool):
 	location: Optional[str] = None
 	locale: Optional[str] = None
 	n_results: int = Field(default=10, description="Number of search results to return")
-        save_file: bool = Field(default=False, description="Flag to determine whether to save the results to a file")
+	save_file: bool = Field(default=False, description="Flag to determine whether to save the results to a file")
 
 	def _run(
 		self,
