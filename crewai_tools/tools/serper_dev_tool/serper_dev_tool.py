@@ -1,22 +1,23 @@
 import os
 import json
 import requests
-
+from datetime import datetime
 from typing import Optional, Type, Any
 from pydantic.v1 import BaseModel, Field
 from crewai_tools.tools.base_tool import BaseTool
 
 def _save_results_to_file(content: str) -> None:
-    """Saves the search results to a file."""
-    filename = f"search_results_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.txt"
-    with open(filename, 'w') as file:
-        file.write(content)
-    print(f"Results saved to {filename}")
-
+	"""Saves the search results to a file."""
+	filename = f"search_results_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.txt"
+	with open(filename, 'w') as file:
+		file.write(content)
+	print(f"Results saved to {filename}")
 
 class SerperDevToolSchema(BaseModel):
 	"""Input for SerperDevTool."""
 	search_query: str = Field(..., description="Mandatory search query you want to use to search the internet")
+	n_results: int = Field(default=10, description="Number of search results to return")
+	save_file: bool = Field(default=False, description="Flag to determine whether to save the results to a file")
 
 class SerperDevTool(BaseTool):
 	name: str = "Search the internet"
@@ -26,8 +27,6 @@ class SerperDevTool(BaseTool):
 	country: Optional[str] = None
 	location: Optional[str] = None
 	locale: Optional[str] = None
-	n_results: int = Field(default=10, description="Number of search results to return")
-	save_file: bool = Field(default=False, description="Flag to determine whether to save the results to a file")
 
 	def _run(
 		self,
@@ -35,8 +34,8 @@ class SerperDevTool(BaseTool):
 	) -> Any:
 
 		search_query = kwargs.get('search_query') or kwargs.get('query')
-		save_file = kwargs.get('save_file', self.save_file)
-		n_results = kwargs.get('n_results', self.n_results)
+		save_file = kwargs.get('save_file', False)
+		n_results = kwargs.get('n_results', 10)
 
 		payload = { "q": search_query, "num": n_results }
 		if self.country:
@@ -45,7 +44,7 @@ class SerperDevTool(BaseTool):
 			payload["location"] = self.location
 		if self.locale:
 			payload["hl"] = self.locale
-		
+
 		payload = json.dumps(payload)
 
 		headers = {
@@ -55,22 +54,22 @@ class SerperDevTool(BaseTool):
 		response = requests.request("POST", self.search_url, headers=headers, data=payload)
 		results = response.json()
 		if 'organic' in results:
-			results = results['organic'][:self.n_results]
+			results = results['organic'][:n_results]
 			string = []
 			for result in results:
 				try:
 					string.append('\n'.join([
-							f"Title: {result['title']}",
-							f"Link: {result['link']}",
-							f"Snippet: {result['snippet']}",
-							"---"
+						f"Title: {result['title']}",
+						f"Link: {result['link']}",
+						f"Snippet: {result['snippet']}",
+						"---"
 					]))
 				except KeyError:
 					continue
 
 			content = '\n'.join(string)
 			if save_file:
-                		_save_results_to_file(content)
+				_save_results_to_file(content)
 			return f"\nSearch results: {content}\n"
 		else:
 			return results
