@@ -39,9 +39,12 @@ class SerperDevTool(BaseTool):
 		n_results = kwargs.get('n_results', self.n_results)
 
 		payload = { "q": search_query, "num": n_results }
-		payload["gl"] = self.country if self.country
-		payload["location"] = self.country if self.location
-		payload["hl"] = self.country if self.locale
+		if self.country:
+			payload["gl"] = self.country
+		if self.location:
+			payload["location"] = self.location
+		if self.locale:
+			payload["hl"] = self.locale		
 		
 		payload = json.dumps(payload)
 
